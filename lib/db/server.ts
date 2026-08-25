@@ -16,13 +16,18 @@ const SUPABASE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KE
  * is handled by `middleware.ts`.
  */
 export async function getSupabaseServerClient() {
+  // Call cookies() before any early return: reading it is what tells Next.js
+  // this route is request-dynamic. Throwing on a missing env var *first* would
+  // skip that signal, so a misconfigured deployment fails the static-generation
+  // build step ("prerendering error") for every page instead of failing at
+  // request time on just the pages that actually run.
+  const cookieStore = await cookies();
+
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
     throw new Error(
       "Supabase env vars are missing. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY."
     );
   }
-
-  const cookieStore = await cookies();
 
   return createServerClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     cookies: {
